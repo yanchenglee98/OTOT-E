@@ -36,27 +36,21 @@ const app = express();
 app.use(express.urlencoded( {extended: true}));
 app.use(cors());
 
-app.get("/photos", (req, res) => {
-    redisClient.get(`photos`, (error, photos) => {
+app.get("/photos", async (req, res) => {
+    redisClient.get(`photos`, async (error, photos) => {
         if (error) console.error(error);
         if (photos != null) {
             console.log("cache hit")
             return res.json(JSON.parse(photos))
         } else {
             console.log("cache miss")
-            Photo.find({}, (err, found) => {
-                if (!err) {
-                    redisClient.setex(
-                        `photos`,
-                        DEFAULT_EXPIRATION,
-                        JSON.stringify(found)
-                    )
-                    res.json(found);
-                } else {
-                    console.log(err);
-                    res.send("error occured");
-                }
-            }).catch(err => console.log("error: " + err));
+            const data = await Photo.find({});
+            redisClient.setex(
+                `photos`,
+                DEFAULT_EXPIRATION,
+                JSON.stringify(data)
+            )
+            res.json(data);
         }
     })
 })
