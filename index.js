@@ -2,6 +2,8 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const redis = require('redis');
+const mongoose = require('mongoose');
+const Photo = require('./models/photoModel');
 
 let redisClient = redis.createClient();
 
@@ -19,6 +21,15 @@ if (!redisClient) {
     console.log("connected to redis");
 }
 
+mongoose.connect('mongodb://localhost', { useNewUrlParser: true});
+var db = mongoose.connection;
+
+// Added check for DB connection
+if(!db)
+    console.log("Error connecting db")
+else
+    console.log("Db connected successfully")
+
 const DEFAULT_EXPIRATION = 3600;
 
 const app = express();
@@ -33,15 +44,13 @@ app.get("/photos", async (req, res) => {
             return res.json(JSON.parse(photos))
         } else {
             console.log("cache miss")
-            const {data} = await axios.get(
-                "https://jsonplaceholder.typicode.com/photos"
-            )
+            const data = await Photo.find({});
             redisClient.setex(
                 `photos`,
                 DEFAULT_EXPIRATION,
                 JSON.stringify(data)
             )
-            res.json(data)
+            res.json(data);
         }
     })
 })
